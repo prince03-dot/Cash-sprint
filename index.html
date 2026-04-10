@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cash Sprint V12</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body{
+color:white;
+font-family:sans-serif;
+background:linear-gradient(-45deg,#022c22,#064e3b,#111827,#000);
+background-size:400% 400%;
+animation:bg 10s infinite;
+}
+@keyframes bg{
+0%{background-position:0%}
+50%{background-position:100%}
+100%{background-position:0%}
+}
+.card{background:#111;padding:16px;border-radius:14px;margin:10px 0}
+.gold{color:#FBBF24}
+.green{color:#22c55e}
+.slide{display:none}
+.slide.active{display:block}
+</style>
+</head>
+
+<body class="p-4">
+
+<!-- 🎮 OPENING -->
+<div id="opening" class="h-screen flex flex-col items-center justify-center">
+<h1 class="text-4xl gold">💰 Cash Sprint</h1>
+<p id="loadingText">Initializing...</p>
+<div class="w-64 bg-gray-700 h-2 mt-4">
+<div id="bar" class="bg-green-500 h-2" style="width:0%"></div>
+</div>
+</div>
+
+<!-- 📖 ONBOARDING -->
+<div id="onboard" style="display:none" class="h-screen flex flex-col justify-center text-center">
+<div class="slide active">
+<h2>📈 Discipline</h2>
+<p>"Ne dépense pas après épargne" – Buffett</p>
+</div>
+<div class="slide">
+<h2>💎 Liberté</h2>
+<p>"Investis avant de consommer"</p>
+</div>
+<div class="slide">
+<h2>🚀 Action</h2>
+<p>Commence maintenant</p>
+<button onclick="startApp()" class="bg-green-500 p-3 w-full mt-4">Continuer</button>
+</div>
+</div>
+
+<!-- 📱 APP -->
+<div id="app" style="display:none">
+
+<h1 class="gold text-2xl">Cash Sprint</h1>
+
+<!-- LOGIN -->
+<input id="email" placeholder="Email" class="w-full p-2 text-black mt-2">
+<input id="password" type="password" placeholder="Password" class="w-full p-2 text-black mt-2">
+<button onclick="login()" class="bg-green-500 w-full mt-2 p-2">Connexion</button>
+
+<!-- ADMIN -->
+<div id="adminPanel" style="display:none" class="card">
+<h2 class="gold">Dashboard Dev</h2>
+<div id="logs"></div>
+</div>
+
+<!-- PLANS -->
+<div class="card">
+<h2 class="gold">Plans d’épargne</h2>
+
+<button onclick="quickGoal('Loyer')" class="bg-yellow-500 w-full mt-2 p-2">🏠 Loyer</button>
+<button onclick="quickGoal('Voiture')" class="bg-yellow-500 w-full mt-2 p-2">🚗 Voiture</button>
+<button onclick="quickGoal('Projet')" class="bg-yellow-500 w-full mt-2 p-2">💼 Projet</button>
+
+<button onclick="createGoal()" class="bg-green-500 w-full mt-2 p-2">
+➕ Personnaliser
+</button>
+</div>
+
+<!-- GOALS -->
+<div id="goals"></div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+/* FIREBASE */
+const firebaseConfig = {
+    apiKey: "AIzaSyAp72rOdvQhQFb6FddX0n_0Mmhx_qM47RI",
+    authDomain: "cash-sprint-973d3.firebaseapp.com",
+    projectId: "cash-sprint-973d3",
+    storageBucket: "cash-sprint-973d3.firebasestorage.app",
+    messagingSenderId: "844467713591",
+    appId: "1:844467713591:web:38837f628d72f36b9e71b2",
+    measurementId: "G-BYQQ0S4210"
+  };
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+const ADMIN="Tchoumkeuprince3@gmail.com";
+
+/* SOUND */
+const sound = new Audio("https://actions.google.com/sounds/v1/cartoon/pop.ogg");
+
+/* VIBRATION */
+function vib(x){if(navigator.vibrate)navigator.vibrate(x);}
+
+/* OPENING */
+let p=0;
+let interval=setInterval(()=>{
+p+=20;
+bar.style.width=p+"%";
+sound.play();
+vib(30);
+
+if(p>=100){
+clearInterval(interval);
+setTimeout(()=>{
+opening.style.display="none";
+onboard.style.display="flex";
+},500);
+}
+},600);
+
+/* SLIDES */
+let s=0;
+let slides=document.querySelectorAll(".slide");
+setInterval(()=>{
+slides[s].classList.remove("active");
+s=(s+1)%slides.length;
+slides[s].classList.add("active");
+},3000);
+
+window.startApp=()=>{
+onboard.style.display="none";
+app.style.display="block";
+};
+
+/* LOGIN */
+window.login=async()=>{
+try{
+await signInWithEmailAndPassword(auth,email.value,password.value);
+
+if(email.value===ADMIN){
+adminPanel.style.display="block";
+}
+
+loadGoals();
+sound.play();
+vib(100);
+
+}catch(e){
+alert(e.message);
+log(e.message);
+}
+};
+
+/* GOALS */
+let goals=JSON.parse(localStorage.getItem("goals")||"[]");
+
+window.quickGoal=(name)=>{
+createGoal(name);
+};
+
+window.createGoal=(name)=>{
+if(goals.length>=2){alert("Max 2 objectifs");return;}
+
+let goalName=name||prompt("Nom objectif");
+let amount=prompt("Montant");
+
+goals.push({id:Date.now(),name:goalName,target:Number(amount),saved:0});
+save();loadGoals();
+};
+
+function loadGoals(){
+goalsDiv.innerHTML="";
+goals.forEach(g=>{
+let p=(g.saved/g.target*100)||0;
+
+goalsDiv.innerHTML+=`
+<div class="card">
+<h3>${g.name}</h3>
+
+<div class="w-full bg-gray-700 h-3">
+<div style="width:${p}%" class="bg-green-500 h-3"></div>
+</div>
+
+<p>${g.saved}/${g.target}</p>
+
+<button onclick="add(${g.id})" class="bg-green-500 w-full mt-2">Ajouter</button>
+</div>`;
+});
+}
+
+window.add=(id)=>{
+let val=prompt("Montant");
+let g=goals.find(x=>x.id==id);
+g.saved+=Number(val);
+
+if(g.saved>=g.target){
+alert("🎉 Objectif atteint !");
+}
+
+save();loadGoals();
+};
+
+/* SAVE */
+function save(){
+localStorage.setItem("goals",JSON.stringify(goals));
+}
+
+/* LOG */
+function log(m){
+let logs=JSON.parse(localStorage.getItem("logs")||"[]");
+logs.push(m);
+localStorage.setItem("logs",JSON.stringify(logs));
+logsDiv.innerHTML=logs.join("<br>");
+}
+
+</script>
+
+</body>
+  </html>
