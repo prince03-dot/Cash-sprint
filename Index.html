@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Cash Sprint</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body{
+color:white;
+font-family:sans-serif;
+background:linear-gradient(-45deg,#022c22,#064e3b,#111827,#000);
+background-size:400% 400%;
+animation:bg 10s infinite;
+}
+@keyframes bg{
+0%{background-position:0%}
+50%{background-position:100%}
+100%{background-position:0%}
+}
+.card{background:#111;padding:16px;border-radius:14px;margin:10px 0}
+.gold{color:#FBBF24}
+.green{color:#22c55e}
+.coin{position:absolute;top:-20px;width:10px;height:10px;background:gold;border-radius:50%;animation:fall 2s linear infinite;}
+@keyframes fall{to{transform:translateY(100vh)}}
+</style>
+</head>
+
+<body class="p-4">
+
+<!-- OPENING -->
+<div id="opening" class="h-screen flex flex-col items-center justify-center">
+<h1 class="text-3xl gold">💰 Cash Sprint</h1>
+<div id="coins"></div>
+<p>Construis ton capital</p>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+
+<h1 class="gold text-2xl">Cash Sprint</h1>
+
+<input id="email" placeholder="Email" class="w-full p-2 text-black mt-3">
+<input id="password" type="password" placeholder="Password" class="w-full p-2 text-black mt-2">
+
+<button onclick="login()" class="bg-green-500 w-full mt-2 p-2">Connexion</button>
+
+<div id="adminPanel" style="display:none" class="card mt-3">
+<h2 class="gold">🔐 Developer Dashboard</h2>
+<p>Users: <span id="users">1</span></p>
+<p>Revenue: <span id="revenue">0</span></p>
+<div id="logs"></div>
+</div>
+
+<div id="goals"></div>
+
+<button onclick="createGoal()" class="bg-yellow-500 w-full mt-3 p-2">
+➕ Nouveau objectif
+</button>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+getAuth,
+signInWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAp72rOdvQhQFb6FddX0n_0Mmhx_qM47RI",
+    authDomain: "cash-sprint-973d3.firebaseapp.com",
+    projectId: "cash-sprint-973d3",
+    storageBucket: "cash-sprint-973d3.firebasestorage.app",
+    messagingSenderId: "844467713591",
+    appId: "1:844467713591:web:38837f628d72f36b9e71b2",
+    measurementId: "G-BYQQ0S4210"
+  };
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+const ADMIN = "Tchoumkeuprince3@gmail.com";
+
+let goals = JSON.parse(localStorage.getItem("goals")||"[]");
+
+// animation
+for(let i=0;i<20;i++){
+let c=document.createElement("div");
+c.className="coin";
+c.style.left=Math.random()*100+"%";
+document.getElementById("coins").appendChild(c);
+}
+
+setTimeout(()=>{
+opening.style.display="none";
+app.style.display="block";
+},3000);
+
+// LOGIN
+window.login = async ()=>{
+try{
+await signInWithEmailAndPassword(auth,email.value,password.value);
+
+if(email.value===ADMIN){
+adminPanel.style.display="block";
+}
+
+loadGoals();
+
+}catch(e){
+alert("Erreur: "+e.message);
+log("ERROR: "+e.message);
+}
+};
+
+// GOALS
+window.createGoal=()=>{
+if(goals.length>=2){alert("Max 2 objectifs");return;}
+let name=prompt("Nom objectif");
+let amount=prompt("Montant");
+
+goals.push({id:Date.now(),name,target:Number(amount),saved:0});
+save();
+loadGoals();
+log("Création objectif");
+};
+
+function loadGoals(){
+goalsDiv.innerHTML="";
+goals.forEach(g=>{
+let p=(g.saved/g.target*100)||0;
+
+goalsDiv.innerHTML+=`
+<div class="card">
+<h3>${g.name}</h3>
+<div class="w-full bg-gray-700 h-3">
+<div style="width:${p}%" class="bg-green-500 h-3"></div>
+</div>
+<p>${g.saved}/${g.target}</p>
+<button onclick="add(${g.id})" class="bg-green-500 w-full mt-2">Ajouter</button>
+</div>
+`;
+});
+}
+
+window.add=(id)=>{
+let val=prompt("Montant");
+let g=goals.find(x=>x.id==id);
+g.saved+=Number(val);
+
+if(g.saved>=g.target){
+alert("🎉 Objectif atteint");
+}
+
+save();
+loadGoals();
+log("Ajout fonds");
+};
+
+function save(){
+localStorage.setItem("goals",JSON.stringify(goals));
+}
+
+// LOGS
+function log(m){
+let logs=JSON.parse(localStorage.getItem("logs")||"[]");
+logs.push(m);
+localStorage.setItem("logs",JSON.stringify(logs));
+document.getElementById("logs").innerHTML=logs.join("<br>");
+}
+
+</script>
+
+</body>
+  </html>
