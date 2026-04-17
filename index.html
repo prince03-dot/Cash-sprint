@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Sprint - Épargne Intelligente</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #10b981;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
+            min-height: 100vh;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        .progress-bar {
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .toast {
+            animation: slideUp 0.3s ease forwards;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .gold { color: #fbbf24; }
+    </style>
+</head>
+<body class="text-slate-200">
+
+    <!-- HEADER -->
+    <header class="bg-slate-900 border-b border-slate-700 sticky top-0 z-50">
+        <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 bg-emerald-500 rounded-2xl flex items-center justify-center text-2xl">💰</div>
+                <h1 class="text-2xl font-bold tracking-tight">Cash Sprint</h1>
+            </div>
+            <div class="flex items-center gap-4 text-sm">
+                <div class="flex items-center gap-1.5">
+                    <i class="fas fa-fire text-orange-400"></i>
+                    <span id="streakDisplay" class="font-semibold">0</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <i class="fas fa-star text-yellow-400"></i>
+                    <span id="xpDisplay" class="font-semibold">0</span> XP
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-2xl mx-auto px-4 py-6">
+
+        <!-- STATS CARD -->
+        <div class="card rounded-3xl p-6 mb-8 border border-slate-700">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-slate-400 text-sm">Niveau actuel</p>
+                    <p class="text-3xl font-bold text-emerald-400" id="levelDisplay">Débutant</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-slate-400 text-sm">Prochain niveau dans</p>
+                    <p class="text-xl font-semibold" id="xpToNext">150 XP</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- QUICK ACTIONS -->
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <button onclick="createGoal()" 
+                    class="card rounded-3xl p-6 text-left hover:bg-emerald-900/30 border border-emerald-500/30">
+                <i class="fas fa-plus text-3xl text-emerald-400 mb-3"></i>
+                <h3 class="font-semibold text-lg">Nouvel objectif</h3>
+                <p class="text-slate-400 text-sm">Créer un objectif personnalisé</p>
+            </button>
+
+            <button onclick="showQuickGoals()" 
+                    class="card rounded-3xl p-6 text-left hover:bg-amber-900/30 border border-amber-500/30">
+                <i class="fas fa-bolt text-3xl text-amber-400 mb-3"></i>
+                <h3 class="font-semibold text-lg">Objectifs rapides</h3>
+                <p class="text-slate-400 text-sm">Loyer, Voiture, Voyage...</p>
+            </button>
+        </div>
+
+        <!-- MES OBJECTIFS -->
+        <div class="mb-4 flex items-center justify-between">
+            <h2 class="text-xl font-semibold flex items-center gap-2">
+                <i class="fas fa-piggy-bank"></i>
+                Mes Objectifs d'Épargne
+            </h2>
+            <span id="goalCount" class="text-sm text-slate-400">0/5</span>
+        </div>
+
+        <div id="goalsContainer" class="space-y-4">
+            <!-- Les objectifs seront injectés ici par JavaScript -->
+        </div>
+
+        <!-- NIVEAUX (Progression) -->
+        <div class="card rounded-3xl p-6 mt-10">
+            <h2 class="font-semibold mb-4 flex items-center gap-2">
+                <i class="fas fa-trophy text-yellow-400"></i>
+                Parcours Cash Sprint
+            </h2>
+            <div class="space-y-3">
+                <div onclick="completeLevel(1)" class="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-800 cursor-pointer">
+                    <div class="w-10 h-10 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-2xl">1️⃣</div>
+                    <div class="flex-1">
+                        <p class="font-medium">Créer son premier objectif</p>
+                        <p class="text-sm text-slate-400">+10 XP</p>
+                    </div>
+                    <button class="text-emerald-400 text-sm font-medium">Terminé</button>
+                </div>
+                <!-- Ajoutez d'autres niveaux ici -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 border border-emerald-500 text-emerald-400 px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage" class="font-medium"></span>
+    </div>
+
+    <script>
+        // ==================== CONFIGURATION ====================
+        let xp = parseInt(localStorage.getItem('cashSprint_xp')) || 0;
+        let streak = parseInt(localStorage.getItem('cashSprint_streak')) || 0;
+        let goals = JSON.parse(localStorage.getItem('cashSprint_goals')) || [];
+
+        const maxGoals = 5;
+
+        // ==================== ELEMENTS DOM ====================
+        const goalsContainer = document.getElementById('goalsContainer');
+        const streakDisplay = document.getElementById('streakDisplay');
+        const xpDisplay = document.getElementById('xpDisplay');
+        const goalCount = document.getElementById('goalCount');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+
+        // ==================== UTILITIES ====================
+        function saveData() {
+            localStorage.setItem('cashSprint_xp', xp);
+            localStorage.setItem('cashSprint_streak', streak);
+            localStorage.setItem('cashSprint_goals', JSON.stringify(goals));
+        }
+
+        function showToast(message, type = 'success') {
+            toastMessage.textContent = message;
+            toast.classList.remove('hidden');
+            
+            if (type === 'error') {
+                toast.classList.add('border-red-500', 'text-red-400');
+            }
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('border-red-500', 'text-red-400');
+            }, 3000);
+        }
+
+        function updateStats() {
+            streakDisplay.textContent = streak;
+            xpDisplay.textContent = xp;
+            goalCount.textContent = `\( {goals.length}/ \){maxGoals}`;
+        }
+
+        function updateStreak() {
+            const today = new Date().toDateString();
+            const lastDate = localStorage.getItem('cashSprint_lastDate');
+            
+            if (lastDate !== today) {
+                streak = lastDate ? streak + 1 : 1;
+                localStorage.setItem('cashSprint_lastDate', today);
+                localStorage.setItem('cashSprint_streak', streak);
+            }
+        }
+
+        function addXP(amount) {
+            xp += amount;
+            saveData();
+            updateStats();
+        }
+
+        // ==================== GOALS ====================
+        function loadGoals() {
+            goalsContainer.innerHTML = '';
+
+            if (goals.length === 0) {
+                goalsContainer.innerHTML = `
+                    <div class="card rounded-3xl p-12 text-center">
+                        <div class="text-6xl mb-4 opacity-30">🏦</div>
+                        <p class="text-slate-400">Aucun objectif pour le moment</p>
+                        <p class="text-sm text-slate-500 mt-2">Créez votre premier objectif d'épargne !</p>
+                    </div>`;
+                return;
+            }
+
+            goals.forEach(goal => {
+                const progress = goal.target > 0 ? Math.min((goal.saved / goal.target) * 100, 100) : 0;
+                const isCompleted = progress >= 100;
+
+                const goalHTML = `
+                    <div class="card rounded-3xl p-6 border ${isCompleted ? 'border-emerald-500' : 'border-slate-700'}">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-semibold text-lg">${goal.name}</h3>
+                                <p class="text-emerald-400 font-mono">
+                                    ${goal.saved.toLocaleString('fr-FR')} / ${goal.target.toLocaleString('fr-FR')} FCFA
+                                </p>
+                            </div>
+                            ${isCompleted ? `<span class="text-emerald-400 text-xl">🎉</span>` : ''}
+                        </div>
+
+                        <div class="w-full bg-slate-700 h-2.5 rounded-full overflow-hidden mb-4">
+                            <div class="progress-bar h-full bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full" 
+                                 style="width: ${progress}%"></div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button onclick="addFunds(${goal.id})" 
+                                    class="flex-1 bg-emerald-600 hover:bg-emerald-500 transition-colors py-3 rounded-2xl font-medium">
+                                <i class="fas fa-plus mr-2"></i>Ajouter
+                            </button>
+                            <button onclick="deleteGoal(${goal.id})" 
+                                    class="px-5 bg-slate-800 hover:bg-red-900/50 text-red-400 rounded-2xl">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>`;
+
+                goalsContainer.innerHTML += goalHTML;
+            });
+        }
+
+        window.createGoal = function(predefinedName = null) {
+            if (goals.length >= maxGoals) {
+                showToast("Vous avez atteint le nombre maximum d'objectifs (5)", "error");
+                return;
+            }
+
+            const name = predefinedName || prompt("Nom de l'objectif d'épargne :");
+            if (!name) return;
+
+            const amountStr = prompt("Montant cible (FCFA) :", "50000");
+            const target = parseFloat(amountStr);
+
+            if (!target || isNaN(target) || target <= 0) {
+                showToast("Montant invalide", "error");
+                return;
+            }
+
+            goals.push({
+                id: Date.now(),
+                name: name.trim(),
+                target: target,
+                saved: 0,
+                createdAt: new Date().toISOString()
+            });
+
+            saveData();
+            loadGoals();
+            updateStats();
+            addXP(15);
+            showToast(`Objectif "${name}" créé avec succès !`);
+        };
+
+        window.showQuickGoals = function() {
+            const quickOptions = [
+                {name: "Loyer", amount: 50000},
+                {name: "Voiture", amount: 2500000},
+                {name: "Voyage", amount: 300000},
+                {name: "Téléphone", amount: 150000},
+                {name: "Projet Personnel", amount: 100000}
+            ];
+
+            let html = "Choisissez un objectif rapide :\n\n";
+            quickOptions.forEach((opt, i) => {
+                html += `${i+1}. ${opt.name} - ${opt.amount.toLocaleString('fr-FR')} FCFA\n`;
+            });
+
+            const choice = prompt(html + "\n\nEntrez le numéro :");
+            const index = parseInt(choice) - 1;
+
+            if (quickOptions[index]) {
+                const selected = quickOptions[index];
+                if (goals.length >= maxGoals) {
+                    showToast("Maximum d'objectifs atteint", "error");
+                    return;
+                }
+                goals.push({
+                    id: Date.now(),
+                    name: selected.name,
+                    target: selected.amount,
+                    saved: 0,
+                    createdAt: new Date().toISOString()
+                });
+                saveData();
+                loadGoals();
+                updateStats();
+                addXP(10);
+                showToast(`Objectif "${selected.name}" ajouté !`);
+            }
+        };
+
+        window.addFunds = function(id) {
+            const goal = goals.find(g => g.id === id);
+            if (!goal) return;
+
+            const amountStr = prompt(`Combien voulez-vous ajouter à "${goal.name}" ?`, "10000");
+            const amount = parseFloat(amountStr);
+
+            if (!amount || isNaN(amount) || amount <= 0) {
+                showToast("Montant invalide", "error");
+                return;
+            }
+
+            goal.saved += amount;
+
+            if (goal.saved >= goal.target) {
+                showToast(`🎉 Félicitations ! Objectif "${goal.name}" atteint !`, "success");
+                addXP(50);
+            } else {
+                showToast(`${amount.toLocaleString('fr-FR')} FCFA ajoutés`);
+            }
+
+            saveData();
+            loadGoals();
+        };
+
+        window.deleteGoal = function(id) {
+            if (!confirm("Supprimer cet objectif ?")) return;
+
+            goals = goals.filter(g => g.id !== id);
+            saveData();
+            loadGoals();
+            updateStats();
+            showToast("Objectif supprimé");
+        };
+
+        window.completeLevel = function(level) {
+            const xpRewards = [0, 15, 25, 40];
+            if (level > 0 && level < xpRewards.length) {
+                addXP(xpRewards[level]);
+                showToast(`+${xpRewards[level]} XP - Niveau ${level} complété !`);
+            }
+        };
+
+        // ==================== INITIALISATION ====================
+        function initApp() {
+            updateStreak();
+            updateStats();
+            loadGoals();
+
+            // Animation d'entrée
+            setTimeout(() => {
+                document.querySelectorAll('.card').forEach((el, i) => {
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(20px)';
+                    setTimeout(() => {
+                        el.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                        el.style.opacity = '1';
+                        el.style.transform = 'translateY(0)';
+                    }, i * 100);
+                });
+            }, 300);
+        }
+
+        // Lancement de l'application
+        window.onload = initApp;
+    </script>
+</body>
+</html>
